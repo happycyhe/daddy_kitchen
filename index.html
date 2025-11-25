@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Daddy's Kitchen</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap');
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #fdfbf7; color: #4a4a4a; user-select: none; }
@@ -18,33 +18,37 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .spin-slow { animation: spin 8s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .memory-img { aspect-ratio: 1/1; object-fit: cover; border-radius: 0.5rem; }
-        /* 현재 재생 중인 곡 강조 */
+        .tab-btn { flex: 1; padding: 0.5rem; font-size: 0.875rem; font-weight: 700; border-radius: 0.5rem; transition: all 0.2s; }
+        .tab-active { background-color: white; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); color: #1f2937; }
+        .tab-inactive { color: #9ca3af; }
         .playing-row { background-color: #fffbeb; border-left: 4px solid #f59e0b; }
+        .memory-img { aspect-ratio: 1/1; object-fit: cover; border-radius: 0.5rem; }
     </style>
 </head>
 <body class="h-screen w-screen flex flex-col relative overflow-hidden">
 
+    <!-- 헤더 -->
     <header class="w-full px-6 py-4 flex justify-between items-center bg-white/80 backdrop-blur-md z-10 sticky top-0 border-b border-stone-100">
         <div class="flex items-center gap-2">
             <i class="fa-solid fa-utensils text-amber-500"></i>
             <h1 class="font-serif text-xl font-bold text-stone-800">Daddy's Kitchen</h1>
-            <span id="server-status" class="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse shadow-sm" title="연결 대기"></span>
+            <span id="server-status" class="w-2.5 h-2.5 rounded-full bg-orange-400 animate-pulse shadow-sm" title="로컬 모드"></span>
         </div>
         <div class="flex gap-4">
-            <button onclick="window.openAddRecipeModal()" class="text-stone-600 hover:text-amber-500"><i class="fa-solid fa-plus text-xl"></i></button>
-            <button onclick="window.toggleTimerModal()" class="text-stone-600 hover:text-amber-500"><i class="fa-regular fa-clock text-xl"></i></button>
+            <button onclick="window.openAddRecipeModal()" class="text-stone-600 hover:text-amber-500 transition"><i class="fa-solid fa-plus text-xl"></i></button>
+            <button onclick="window.toggleTimerModal()" class="text-stone-600 hover:text-amber-500 transition"><i class="fa-regular fa-clock text-xl"></i></button>
         </div>
     </header>
 
+    <!-- 메인 컨텐츠 -->
     <main id="recipe-container" class="flex-1 overflow-y-auto pb-32 hide-scrollbar transition-opacity duration-300">
         <div class="flex flex-col items-center justify-center h-full text-stone-400">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-amber-500 mb-4"></i>
-            <p>레시피를 불러오는 중입니다...</p>
+            <p>주방을 준비하고 있습니다...</p>
         </div>
     </main>
 
-    <!-- 하단 뮤직 플레이어 -->
+    <!-- 하단 플레이어 -->
     <div class="absolute bottom-0 w-full bg-white border-t border-stone-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] px-6 py-4 z-20">
         <div class="w-full bg-stone-200 h-1 rounded-full mb-4 overflow-hidden cursor-pointer" id="progress-container">
             <div id="progress-bar" class="bg-amber-500 h-full w-0 transition-all duration-100"></div>
@@ -52,51 +56,41 @@
         <div class="flex justify-between items-center">
             <div class="flex items-center gap-3 overflow-hidden" onclick="window.togglePlaylistModal()">
                 <div id="album-art" class="w-10 h-10 rounded-full bg-stone-800 flex items-center justify-center overflow-hidden shadow-md shrink-0">
-                    <img src="https://images.unsplash.com/photo-1459749411177-3a269496a607?w=100" class="w-full h-full object-cover opacity-80">
+                    <img src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100" class="w-full h-full object-cover opacity-80">
                 </div>
                 <div class="flex-1 min-w-0 cursor-pointer">
-                    <p id="song-title" class="font-bold text-sm text-stone-800 truncate">Sunday Morning</p>
-                    <p id="artist-name" class="text-xs text-stone-500 truncate">Tap for Playlist 🎵</p>
+                    <p id="song-title" class="font-bold text-sm text-stone-800 truncate">채널 선택하기 🎵</p>
+                    <p id="artist-name" class="text-xs text-stone-500 truncate">터치해서 목록 열기</p>
                 </div>
             </div>
             <div class="flex items-center gap-4 text-stone-700">
                 <button onclick="window.prevSong()"><i class="fa-solid fa-backward-step"></i></button>
                 <button onclick="window.togglePlay()" class="w-10 h-10 bg-amber-500 rounded-full text-white flex items-center justify-center shadow-md"><i id="play-icon" class="fa-solid fa-play ml-1"></i></button>
                 <button onclick="window.nextSong()"><i class="fa-solid fa-forward-step"></i></button>
-                <!-- 플레이리스트 버튼 추가 -->
                 <button onclick="window.togglePlaylistModal()" class="ml-2 text-stone-500 hover:text-amber-500"><i class="fa-solid fa-list-ul text-lg"></i></button>
             </div>
         </div>
-        <audio id="audio-player"></audio>
+        <audio id="audio-player" crossorigin="anonymous"></audio>
     </div>
 
-    <!-- [NEW] 플레이리스트 모달 -->
-    <div id="playlist-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center backdrop-blur-sm">
-        <div class="bg-white w-full sm:w-96 h-[60vh] sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl flex flex-col">
+    <!-- 플레이리스트 모달 -->
+    <div id="playlist-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-white w-full sm:w-96 h-[70vh] sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl flex flex-col">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-bold">플레이리스트</h3>
                 <button onclick="window.togglePlaylistModal()"><i class="fa-solid fa-chevron-down text-xl"></i></button>
             </div>
-            
-            <!-- 탭 버튼 -->
             <div class="flex p-1 bg-stone-100 rounded-xl mb-4">
-                <button onclick="window.switchTab('podcast')" id="tab-podcast" class="flex-1 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-stone-800 transition">📻 추천 채널</button>
-                <button onclick="window.switchTab('local')" id="tab-local" class="flex-1 py-2 text-sm font-bold rounded-lg text-stone-400 transition">📂 내 파일</button>
+                <button onclick="window.switchTab('podcast')" id="tab-podcast" class="tab-btn tab-active">📻 추천 채널</button>
+                <button onclick="window.switchTab('local')" id="tab-local" class="tab-btn tab-inactive">📂 내 파일</button>
+                <button onclick="window.switchTab('url')" id="tab-url" class="tab-btn tab-inactive">🔗 주소 입력</button>
             </div>
-
-            <!-- 리스트 영역 -->
-            <div class="flex-1 overflow-y-auto space-y-2 pr-1 hide-scrollbar" id="playlist-content">
-                <!-- 자바스크립트로 채워짐 -->
-            </div>
-
-            <!-- 내 파일 추가 버튼 (내 파일 탭일 때만 보임) -->
-            <div id="local-upload-btn" class="hidden mt-4">
-                <button onclick="document.getElementById('music-files-input').click()" class="w-full py-3 bg-stone-800 text-white font-bold rounded-xl">+ 내 폰에서 음악 가져오기</button>
-                <p class="text-xs text-center text-stone-400 mt-2">* 여러 곡 선택 가능</p>
-            </div>
+            <div class="flex-1 overflow-y-auto space-y-2 pr-1 hide-scrollbar" id="playlist-content"></div>
+            <div id="playlist-actions" class="mt-4"></div>
         </div>
     </div>
 
+    <!-- 타이머 모달 -->
     <div id="timer-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-6 w-80 shadow-2xl text-center">
             <h3 class="text-xl font-bold mb-1">키친 타이머</h3>
@@ -124,39 +118,38 @@
             <div class="flex-1 overflow-y-auto space-y-4 pr-1 hide-scrollbar">
                 <div class="w-full h-40 bg-stone-100 rounded-xl border-2 border-dashed border-stone-300 flex flex-col items-center justify-center cursor-pointer hover:bg-stone-50 transition relative overflow-hidden" onclick="document.getElementById('cover-input').click()">
                     <img id="cover-preview" class="absolute inset-0 w-full h-full object-cover hidden">
-                    <div id="cover-placeholder" class="text-center text-stone-400"><i class="fa-solid fa-camera text-3xl mb-2"></i><p class="text-xs">대표 사진 등록</p></div>
+                    <div id="cover-placeholder" class="text-center text-stone-400"><i class="fa-solid fa-camera text-3xl mb-2"></i><p class="text-xs">요리 완성 사진 등록</p></div>
                     <input type="file" id="cover-input" accept="image/*" hidden onchange="window.handleCoverUpload(event)">
                 </div>
                 <input type="text" id="new-title" class="w-full border rounded-xl px-4 py-2 outline-none focus:border-amber-500" placeholder="요리 이름 (필수)">
-                <input type="text" id="new-subtitle" class="w-full border rounded-xl px-4 py-2 outline-none focus:border-amber-500" placeholder="영어 부제 (선택)">
+                <input type="text" id="new-subtitle" class="w-full border rounded-xl px-4 py-2 outline-none focus:border-amber-500" placeholder="부제 (선택)">
                 <div class="grid grid-cols-2 gap-2">
                     <input type="text" id="new-time" class="w-full border rounded-xl px-4 py-2 outline-none focus:border-amber-500" placeholder="시간 (예: 15분)">
                     <input type="text" id="new-servings" class="w-full border rounded-xl px-4 py-2 outline-none focus:border-amber-500" placeholder="인분 (예: 1인분)">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-stone-500 mb-2">준비 재료</label>
+                    <label class="block text-xs font-bold text-stone-500 mb-2">재료</label>
                     <div id="ingredient-input-list" class="space-y-2 mb-2"></div>
                     <button onclick="window.addIngredientRow()" class="text-xs bg-amber-50 text-amber-600 font-bold px-3 py-2 rounded-lg w-full"><i class="fa-solid fa-plus"></i> 재료 추가하기</button>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-stone-500 mb-2">조리 순서</label>
+                    <label class="block text-xs font-bold text-stone-500 mb-2">조리 순서 (타이머 설정 가능)</label>
                     <div id="step-input-list" class="space-y-2 mb-2"></div>
                     <button onclick="window.addStepRow()" class="text-xs bg-amber-50 text-amber-600 font-bold px-3 py-2 rounded-lg w-full"><i class="fa-solid fa-plus"></i> 순서 추가하기</button>
                 </div>
             </div>
-            <button onclick="window.saveNewRecipe()" class="mt-4 w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl shadow-md flex justify-center items-center gap-2"><i class="fa-solid fa-cloud-arrow-up"></i> 서버에 저장하기</button>
+            <button onclick="window.saveNewRecipe()" class="mt-4 w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl shadow-md flex justify-center items-center gap-2"><i class="fa-solid fa-cloud-arrow-up"></i> 저장하기</button>
         </div>
     </div>
     
-    <!-- 파일 인풋들 -->
     <input type="file" id="file-input" accept="image/*" class="hidden" onchange="window.handleImageUpload(event)">
-    <!-- [NEW] 다중 선택 가능한 음악 파일 인풋 -->
     <input type="file" id="music-files-input" accept="audio/*" multiple class="hidden" onchange="window.handleLocalMusicSelect(event)">
-<script type="module">
+
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, query, orderBy, Timestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // ▼▼▼ 본인의 Firebase 키값으로 교체하세요 ▼▼▼
+        // ▼▼▼ 본인의 Firebase 키값을 여기에 넣으세요! ▼▼▼
 		 const firebaseConfig = {
 			apiKey: "AIzaSyBIkW8QTdG1qPUlfejf62qr2sfA0hjqpsA",
 			authDomain: "happycyhe.firebaseapp.com",
@@ -166,34 +159,41 @@
 			appId: "1:647575874870:web:73861eaede40ab72d8d797",
 			measurementId: "G-7CNQ2SLXKK"
 		  };
-        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-        let db;
+        let db, isServerMode = false;
+        
         try {
-            if (!firebaseConfig.apiKey.includes("YOUR_API_KEY")) {
+            if (firebaseConfig.apiKey && firebaseConfig.apiKey.length > 10) {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
-                document.getElementById('server-status').classList.replace('bg-red-400', 'bg-green-400');
+                isServerMode = true;
+                document.getElementById('server-status').classList.replace('bg-orange-400', 'bg-green-400');
+                document.getElementById('server-status').title = "서버 연결됨";
+                console.log("🔥 서버 모드");
+            } else {
+                console.log("📂 로컬 모드");
             }
         } catch(e) { console.error(e); }
 
-        let recipes = [], currentRecipeIdx = 0;
-        let coverImageBase64 = null;
+        let recipes = [], currentRecipeIdx = 0, coverImageBase64 = null;
 
         async function loadRecipes() {
-            if(!db) { renderEmpty(); return; }
-            try {
-                const q = query(collection(db, "recipes"), orderBy("createdAt", "desc"));
-                const snp = await getDocs(q);
-                recipes=[]; 
-                snp.forEach(d=>recipes.push({id:d.id,...d.data()}));
-                if(recipes.length===0) renderEmpty();
-                else window.renderRecipe(0);
-            } catch(e) { renderEmpty(); }
+            if(isServerMode) {
+                try {
+                    const q = query(collection(db, "recipes"), orderBy("createdAt", "desc"));
+                    const snp = await getDocs(q);
+                    recipes = []; snp.forEach(d => recipes.push({id:d.id, ...d.data()}));
+                } catch(e) { console.error(e); }
+            } else {
+                const localData = localStorage.getItem('daddys_local_recipes');
+                if(localData) recipes = JSON.parse(localData);
+            }
+            if(recipes.length === 0) renderEmpty(); else window.renderRecipe(0);
         }
 
         function renderEmpty() {
-            document.getElementById('recipe-container').innerHTML = `<div class="flex flex-col items-center justify-center h-full text-stone-400 px-6 text-center"><i class="fa-solid fa-plate-wheat text-6xl text-stone-200 mb-4"></i><h3 class="text-xl font-bold text-stone-600 mb-2">레시피가 없습니다</h3><p class="text-sm mb-6">오른쪽 위 + 버튼을 눌러<br>첫 번째 요리를 기록해보세요!</p></div>`;
+            document.getElementById('recipe-container').innerHTML = `<div class="flex flex-col items-center justify-center h-full text-stone-400 px-6 text-center"><i class="fa-solid fa-plate-wheat text-6xl text-stone-200 mb-4"></i><h3 class="text-xl font-bold text-stone-600 mb-2">레시피가 없습니다</h3><p class="text-sm mb-6">오른쪽 위 + 버튼을 눌러<br>첫 번째 요리를 기록해보세요!<br><span class="text-xs text-orange-400">(${isServerMode ? '서버' : '로컬'} 모드)</span></p></div>`;
         }
 
         function resizeImage(file, maxWidth) {
@@ -220,9 +220,8 @@
             const file = e.target.files[0]; if(!file) return;
             const reader = new FileReader();
             reader.onload = (ev) => {
-                const preview = document.getElementById('cover-preview');
-                preview.src = ev.target.result;
-                preview.classList.remove('hidden');
+                document.getElementById('cover-preview').src = ev.target.result;
+                document.getElementById('cover-preview').classList.remove('hidden');
                 document.getElementById('cover-placeholder').classList.add('hidden');
             }
             reader.readAsDataURL(file);
@@ -230,53 +229,37 @@
         }
 
         window.saveNewRecipe = async function() {
-            if(!db) { alert("Firebase 키를 설정해주세요."); return; }
             const title = document.getElementById('new-title').value;
             if(!title) { alert("요리 이름은 필수입니다."); return; }
-
-            const ings=[]; 
-            document.querySelectorAll('.ing-name').forEach((el,i)=> { if(el.value) ings.push({name:el.value, amount:document.querySelectorAll('.ing-amount')[i].value}); });
-
-            const steps=[];
-            document.querySelectorAll('.step-text').forEach((el,i)=> {
-                if(el.value) {
-                    const timeVal = document.querySelectorAll('.step-time')[i].value;
-                    const timerSec = timeVal ? parseInt(timeVal) * 60 : null;
-                    steps.push({text:el.value, timer: timerSec});
-                }
-            });
-
+            const ings=[]; document.querySelectorAll('.ing-name').forEach((el,i)=> { if(el.value) ings.push({name:el.value, amount:document.querySelectorAll('.ing-amount')[i].value}); });
+            const steps=[]; document.querySelectorAll('.step-text').forEach((el,i)=> { if(el.value) { const timeVal = document.querySelectorAll('.step-time')[i].value; const timerSec = timeVal ? parseInt(timeVal) * 60 : null; steps.push({text:el.value, timer: timerSec}); }});
             if(steps.length === 0) { alert("순서를 입력해주세요."); return; }
-
             const finalImage = coverImageBase64 || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800";
-            const newRecipe = {
-                title, subtitle: document.getElementById('new-subtitle').value,
-                difficulty: "미정", time: document.getElementById('new-time').value, servings: document.getElementById('new-servings').value,
-                image: finalImage, tag: "나만의 요리", ingredients: ings, steps: steps, createdAt: Timestamp.now()
-            };
-            
+            const newRecipe = { title, subtitle: document.getElementById('new-subtitle').value, difficulty: "미정", time: document.getElementById('new-time').value, servings: document.getElementById('new-servings').value, image: finalImage, tag: "나만의 요리", ingredients: ings, steps: steps, createdAt: isServerMode ? Timestamp.now() : new Date().toISOString(), id: Date.now().toString() };
             if(new Blob([JSON.stringify(newRecipe)]).size > 950000) { alert("사진 용량이 큽니다."); return; }
-
-            try { await addDoc(collection(db,"recipes"), newRecipe); alert("저장 완료!"); window.closeAddRecipeModal(); loadRecipes(); } catch(e) { alert("실패: "+e.message); }
+            if(isServerMode) { try { await addDoc(collection(db,"recipes"), newRecipe); alert("서버 저장!"); } catch(e) { alert(e.message); return; } } 
+            else { recipes.unshift(newRecipe); localStorage.setItem('daddys_local_recipes', JSON.stringify(recipes)); alert("폰 저장!"); }
+            window.closeAddRecipeModal(); loadRecipes();
         }
 
         window.deleteRecipe = async function(id) {
             if(!confirm("삭제하시겠습니까?")) return;
-            try { await deleteDoc(doc(db, "recipes", id)); alert("삭제됨"); if(currentRecipeIdx >= recipes.length-1) currentRecipeIdx = Math.max(0, recipes.length-2); loadRecipes(); } catch(e) { alert(e.message); }
+            if(isServerMode) { try { await deleteDoc(doc(db, "recipes", id)); alert("삭제됨"); } catch(e) { alert(e.message); } } 
+            else { recipes = recipes.filter(r => r.id !== id); localStorage.setItem('daddys_local_recipes', JSON.stringify(recipes)); }
+            if(currentRecipeIdx >= recipes.length-1) currentRecipeIdx = Math.max(0, recipes.length-2); loadRecipes();
         }
-		window.renderRecipe = function(idx) {
+
+        window.renderRecipe = function(idx) {
             if(recipes.length===0) { renderEmpty(); return; }
             if(idx < 0) idx = 0; if(idx >= recipes.length) idx = recipes.length - 1;
             currentRecipeIdx = idx;
             const r = recipes[idx];
             const memories = window.getMemories(r.title);
             const container = document.getElementById('recipe-container');
-            
             let ingHtml = r.ingredients.map((ing,i)=>`<div class="flex justify-between items-center bg-white p-3 rounded-xl border mb-2"><div class="flex gap-2"><input type="checkbox" id="ig-${i}"><label for="ig-${i}">${ing.name}</label></div><span class="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">${ing.amount||''}</span></div>`).join('');
             let stepHtml = r.steps.map((st,i)=>`<div class="flex gap-4 mb-4 group"><div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-sm shrink-0">${i+1}</div><div class="flex-1"><p class="leading-relaxed cursor-pointer" onclick="this.classList.toggle('line-through'); this.classList.toggle('opacity-40')">${st.text}</p>${st.timer?`<button onclick="window.setAndStartTimer(${st.timer}, event)" class="mt-2 flex items-center gap-1 text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-2 rounded-lg font-bold transition"><i class="fa-solid fa-stopwatch"></i> ${Math.floor(st.timer/60)}분 타이머 시작</button>`:''}</div></div>`).join('');
             let memHtml = memories.map(m=>`<div class="relative"><p class="text-xs mb-1">📅 ${m.date}</p><img src="${m.image}" class="w-full rounded-lg shadow"><button onclick="window.delMem('${r.title}',${m.id})" class="absolute top-2 right-2 text-white bg-black/50 w-8 h-8 rounded-full flex items-center justify-center text-xs"><i class="fa-solid fa-trash"></i></button></div>`).join('');
-
-            container.innerHTML = `<div class="fade-in"><div class="relative w-full h-64 bg-gray-200"><img src="${r.image}" class="w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6 text-white"><h2 class="text-3xl font-serif font-bold drop-shadow-md">${r.title}</h2></div><button onclick="window.deleteRecipe('${r.id}')" class="absolute top-4 right-4 bg-black/40 hover:bg-red-500 text-white w-10 h-10 rounded-full backdrop-blur-sm transition flex items-center justify-center shadow-lg"><i class="fa-solid fa-trash"></i></button></div><div class="p-6"><div class="flex justify-between text-center mb-8 bg-white p-4 rounded-xl border"><div><p class="text-xs text-gray-400">시간</p><p class="font-bold">${r.time||'-'}</p></div><div class="w-px bg-gray-100"></div><div><p class="text-xs text-gray-400">인분</p><p class="font-bold">${r.servings||'-'}</p></div><div class="w-px bg-gray-100"></div><div><p class="text-xs text-gray-400">순서</p><p class="font-bold">${idx + 1}/${recipes.length}</p></div></div><h3 class="font-bold mb-4">준비 재료</h3><div class="mb-8">${ingHtml}</div><h3 class="font-bold mb-4">조리 순서</h3><div class="mb-8">${stepHtml}</div><h3 class="font-bold mb-4 flex justify-between">추억 앨범 <button onclick="window.triggerFile()" class="text-xs bg-amber-100 px-2 py-1 rounded text-amber-700">+ 사진 추가</button></h3><div class="space-y-4">${memHtml || '<p class="text-center text-xs text-gray-400 py-4 border border-dashed rounded">만든 요리를 찍어서 남겨보세요!</p>'}</div><div class="h-10"></div>${recipes.length > 1 ? '<p class="text-center text-xs text-gray-400 pb-4">↔ 좌우로 이동</p>' : ''}</div></div>`;
+            container.innerHTML = `<div class="fade-in"><div class="relative w-full h-64 bg-gray-200"><img src="${r.image}" class="w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6 text-white"><h2 class="text-3xl font-serif font-bold drop-shadow-md">${r.title}</h2></div><button onclick="window.deleteRecipe('${r.id}')" class="absolute top-4 right-4 bg-black/40 hover:bg-red-500 text-white w-10 h-10 rounded-full backdrop-blur-sm transition flex items-center justify-center shadow-lg"><i class="fa-solid fa-trash"></i></button></div><div class="p-6"><div class="flex justify-between text-center mb-8 bg-white p-4 rounded-xl border"><div><p class="text-xs text-gray-400">시간</p><p class="font-bold">${r.time||'-'}</p></div><div class="w-px bg-gray-100"></div><div><p class="text-xs text-gray-400">인분</p><p class="font-bold">${r.servings||'-'}</p></div><div class="w-px bg-gray-100"></div><div><p class="text-xs text-gray-400">순서</p><p class="font-bold">${idx + 1}/${recipes.length}</p></div></div><h3 class="font-bold mb-4">준비 재료</h3><div class="mb-8">${ingHtml}</div><h3 class="font-bold mb-4">조리 순서</h3><div class="mb-8">${stepHtml}</div><h3 class="font-bold mb-4 flex justify-between">추억 앨범 <button onclick="window.triggerFile()" class="text-xs bg-amber-100 px-2 py-1 rounded text-amber-700">+ 사진 추가</button></h3><div class="space-y-4">${memHtml || '<p class="text-center text-xs text-gray-400 py-4 border border-dashed rounded">요리 사진을 남겨보세요!</p>'}</div><div class="h-10"></div>${recipes.length > 1 ? '<p class="text-center text-xs text-gray-400 pb-4">↔ 좌우로 이동</p>' : ''}</div></div>`;
         }
 
         let ts=0, te=0;
@@ -285,7 +268,7 @@
         rc.addEventListener('touchend', e=>{ te=e.changedTouches[0].screenX; if(te>ts+50 && currentRecipeIdx>0) {currentRecipeIdx--; window.renderRecipe(currentRecipeIdx);} if(te<ts-50 && currentRecipeIdx<recipes.length-1){currentRecipeIdx++; window.renderRecipe(currentRecipeIdx);} }, {passive:true});
 
         window.getMemories = t => JSON.parse(localStorage.getItem('daddys_mem')||'{}')[t]||[];
-        window.saveMem = (t,d) => { const m=JSON.parse(localStorage.getItem('daddys_mem')||'{}'); if(!m[t])m[t]=[]; m[t].unshift({date:new Date().toLocaleDateString(), image:d, id:Date.now()}); try{localStorage.setItem('daddys_mem',JSON.stringify(m)); window.renderRecipe(currentRecipeIdx);}catch(e){alert("사진 용량 부족");} };
+        window.saveMem = (t,d) => { const m=JSON.parse(localStorage.getItem('daddys_mem')||'{}'); if(!m[t])m[t]=[]; m[t].unshift({date:new Date().toLocaleDateString(), image:d, id:Date.now()}); try{localStorage.setItem('daddys_mem',JSON.stringify(m)); window.renderRecipe(currentRecipeIdx);}catch(e){alert("용량 부족");} };
         window.delMem = (t,id) => { if(!confirm('삭제?'))return; const m=JSON.parse(localStorage.getItem('daddys_mem')||'{}'); m[t]=m[t].filter(x=>x.id!==id); localStorage.setItem('daddys_mem',JSON.stringify(m)); window.renderRecipe(currentRecipeIdx); };
         window.triggerFile = () => document.getElementById('file-input').click();
         window.handleImageUpload = e => { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=ev=>window.saveMem(recipes[currentRecipeIdx].title, ev.target.result); r.readAsDataURL(f); e.target.value=''; };
@@ -304,138 +287,64 @@
         window.addTime = s => { tt+=s; window.updateT(); };
         window.resetTimer = () => { clearInterval(ti); tt=0; window.updateT(); };
         window.toggleTimer = () => { if(ti){ window.stopTimer(); } else { window.startTimer(); } };
-        window.startTimer = () => { tBtn.innerText="일시정지"; tBtn.classList.replace('bg-amber-500','bg-red-500'); ti = setInterval(()=>{ if(tt>0){tt--;window.updateT();}else{window.stopTimer(); alert("⏰ 타이머 종료!");} }, 1000); }
+        window.startTimer = () => { tBtn.innerText="일시정지"; tBtn.classList.replace('bg-amber-500','bg-red-500'); ti = setInterval(()=>{ if(tt>0){tt--;window.updateT();}else{window.stopTimer(); alert("끝!");} }, 1000); }
         window.stopTimer = () => { if(ti) clearInterval(ti); ti=null; tBtn.innerText="시작"; tBtn.classList.replace('bg-red-500','bg-amber-500'); }
 
-        // [NEW] 플레이리스트 로직
         const audio = document.getElementById('audio-player');
-        let play = false;
-        let currentPlaylist = []; // {title, artist, src, isFile}
-        let songIdx = 0;
-
+        audio.onerror = () => { alert('재생할 수 없는 소스입니다.'); document.getElementById('play-icon').className = 'fa-solid fa-play'; document.getElementById('album-art').classList.remove('spin-slow'); play = false; };
+        let play = false, songIdx = 0, currentPlaylist = [], activeTab = 'podcast';
+        
         const podcastList = [
-            { title: "Cafe Jazz Vibes", artist: "Bensound (Free)", src: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Chad_Crouch/Arps/Chad_Crouch_-_Elipsis.mp3" },
-            { title: "Cooking Piano", artist: "Keys of Moon", src: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Kai_Engel/Satin/Kai_Engel_-_04_-_Sentinel.mp3" },
-            { title: "Lofi Cooking", artist: "Lofi Records", src: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/KieLoKaz/Free_Ganymed/KieLoKaz_-_01_-_Reunion_of_the_Spaceducks.mp3" }
+            { title: "☕ 카페 백색소음", artist: "Cafe Ambience", src: "https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg" },
+            { title: "☔ 비오는 날 요리", artist: "Rain Sounds", src: "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg" },
+            { title: "🍳 신나는 쿠킹 팝", artist: "Kitchen Pop", src: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Josh_Woodward/The_Wake/Josh_Woodward_-_The_Wake_-_01_-_Coffee.mp3" },
+            { title: "🎹 차분한 피아노", artist: "Piano Mood", src: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Kai_Engel/Satin/Kai_Engel_-_04_-_Sentinel.mp3" },
+            { title: "🔥 모닥불 소리", artist: "Fireplace", src: "https://actions.google.com/sounds/v1/ambiences/fire.ogg" }
         ];
 
-        let activeTab = 'podcast';
-
-        window.togglePlaylistModal = () => {
-            const modal = document.getElementById('playlist-modal');
-            if(modal.classList.contains('hidden')) {
-                modal.classList.remove('hidden');
-                window.switchTab(activeTab);
-            } else {
-                modal.classList.add('hidden');
-            }
-        }
-
+        window.togglePlaylistModal = () => { document.getElementById('playlist-modal').classList.toggle('hidden'); if(!document.getElementById('playlist-modal').classList.contains('hidden')) window.switchTab(activeTab); }
         window.switchTab = (tab) => {
-            activeTab = tab;
-            const btnPodcast = document.getElementById('tab-podcast');
-            const btnLocal = document.getElementById('tab-local');
-            const content = document.getElementById('playlist-content');
-            const uploadBtn = document.getElementById('local-upload-btn');
-
-            if(tab === 'podcast') {
-                btnPodcast.className = "flex-1 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-stone-800 transition";
-                btnLocal.className = "flex-1 py-2 text-sm font-bold rounded-lg text-stone-400 transition";
-                uploadBtn.classList.add('hidden');
-                window.renderPlaylistUI(podcastList);
-            } else {
-                btnLocal.className = "flex-1 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-stone-800 transition";
-                btnPodcast.className = "flex-1 py-2 text-sm font-bold rounded-lg text-stone-400 transition";
-                uploadBtn.classList.remove('hidden');
-                // 로컬은 현재 선택된게 없으면 안내 문구
-                if(currentPlaylist.length > 0 && currentPlaylist[0].isFile) {
-                    window.renderPlaylistUI(currentPlaylist);
-                } else {
-                    content.innerHTML = `<div class="text-center py-8 text-stone-400 text-sm">아직 불러온 파일이 없습니다.<br>아래 버튼을 눌러 음악을 추가하세요.</div>`;
-                }
+            activeTab = tab; ['podcast','local','url'].forEach(t => document.getElementById(`tab-${t}`).className = `tab-btn ${t===tab ? 'tab-active' : 'tab-inactive'}`);
+            const actions = document.getElementById('playlist-actions'); actions.innerHTML = '';
+            if(tab === 'podcast') window.renderPlaylistUI(podcastList);
+            else if(tab === 'local') {
+                if(currentPlaylist.length > 0 && currentPlaylist[0].isFile) window.renderPlaylistUI(currentPlaylist);
+                else document.getElementById('playlist-content').innerHTML = `<div class="text-center py-8 text-stone-400 text-sm">파일 없음</div>`;
+                actions.innerHTML = `<button onclick="document.getElementById('music-files-input').click()" class="w-full py-3 bg-stone-800 text-white font-bold rounded-xl shadow-md">+ 내 폰 음악 가져오기</button>`;
+            } else if(tab === 'url') {
+                document.getElementById('playlist-content').innerHTML = `<div class="text-center py-8 text-stone-400 text-sm">라디오 URL 입력</div>`;
+                actions.innerHTML = `<div class="flex gap-2"><input id="url-input" type="text" class="flex-1 border rounded-xl px-4 outline-none" placeholder="https://..."><button onclick="window.playUrl()" class="bg-amber-500 text-white px-6 py-3 rounded-xl font-bold">재생</button></div>`;
             }
         }
-
-        window.handleLocalMusicSelect = (e) => {
-            const files = Array.from(e.target.files);
-            if(files.length === 0) return;
-            
-            const newPlaylist = files.map(f => ({
-                title: f.name,
-                artist: "내 기기",
-                src: URL.createObjectURL(f),
-                isFile: true
-            }));
-            
-            currentPlaylist = newPlaylist;
-            songIdx = 0;
-            window.renderPlaylistUI(currentPlaylist);
-            window.loadSong(0, true); // 바로 재생
-        }
-
-        window.renderPlaylistUI = (list) => {
-            const content = document.getElementById('playlist-content');
-            content.innerHTML = list.map((item, i) => `
-                <div onclick="window.playSpecificSong(${i})" class="flex justify-between items-center p-3 rounded-xl hover:bg-stone-50 cursor-pointer ${ (currentPlaylist === list && songIdx === i) ? 'playing-row' : '' }">
-                    <div>
-                        <p class="text-sm font-bold text-stone-800 truncate w-48">${item.title}</p>
-                        <p class="text-xs text-stone-400">${item.artist}</p>
-                    </div>
-                    ${ (currentPlaylist === list && songIdx === i && play) ? '<i class="fa-solid fa-volume-high text-amber-500"></i>' : '<i class="fa-solid fa-play text-stone-300"></i>' }
-                </div>
-            `).join('');
-        }
-
-        window.playSpecificSong = (idx) => {
-            // 현재 탭의 리스트를 활성 플레이리스트로 설정
-            if(activeTab === 'podcast') currentPlaylist = podcastList;
-            // (로컬은 이미 currentPlaylist에 있음)
-            
-            songIdx = idx;
-            window.loadSong(songIdx, true);
-            window.renderPlaylistUI(currentPlaylist); // UI 갱신
-        }
-
+        window.renderPlaylistUI = (list) => { document.getElementById('playlist-content').innerHTML = list.map((item, i) => `<div onclick="window.playSpecificSong(${i})" class="flex justify-between items-center p-3 rounded-xl hover:bg-stone-50 cursor-pointer ${(currentPlaylist === list && songIdx === i) ? 'playing-row' : ''}"><div><p class="text-sm font-bold text-stone-800 truncate w-48">${item.title}</p><p class="text-xs text-stone-400">${item.artist}</p></div>${(currentPlaylist === list && songIdx === i && play) ? '<i class="fa-solid fa-volume-high text-amber-500"></i>' : '<i class="fa-solid fa-play text-stone-300"></i>'}</div>`).join(''); }
+        window.playSpecificSong = (idx) => { if(activeTab === 'podcast') currentPlaylist = podcastList; songIdx = idx; window.loadSong(songIdx, true); window.renderPlaylistUI(currentPlaylist); }
+        window.handleLocalMusicSelect = (e) => { const files = Array.from(e.target.files); if(!files.length) return; currentPlaylist = files.map(f => ({ title: f.name, artist: "내 기기", src: URL.createObjectURL(f), isFile: true })); songIdx = 0; window.renderPlaylistUI(currentPlaylist); window.loadSong(0, true); }
+        window.playUrl = () => { const url = document.getElementById('url-input').value; if(!url) return; currentPlaylist = [{ title: "URL 스트림", artist: "Internet Radio", src: url }]; songIdx = 0; window.loadSong(0, true); window.togglePlaylistModal(); }
+        
         window.loadSong = (idx, autoPlay = false) => {
-            if(currentPlaylist.length === 0) currentPlaylist = podcastList; // 초기값
+            if(currentPlaylist.length === 0) currentPlaylist = podcastList;
             const s = currentPlaylist[idx];
             document.getElementById('song-title').innerText = s.title;
             document.getElementById('artist-name').innerText = s.artist;
+            if(s.cover) document.querySelector('#album-art img').src=s.cover;
             audio.src = s.src;
-            if(autoPlay) {
-                audio.play();
-                play = true;
-                document.getElementById('play-icon').className = 'fa-solid fa-pause';
-                document.getElementById('album-art').classList.add('spin-slow');
+            if(autoPlay) { 
+                audio.play().then(() => { play = true; document.getElementById('play-icon').className = 'fa-solid fa-pause'; document.getElementById('album-art').classList.add('spin-slow'); })
+                .catch(e => { console.log("Autoplay prevented:", e); play = false; document.getElementById('play-icon').className = 'fa-solid fa-play'; });
             }
         }
-
         window.togglePlay = () => { 
-            play = !play; 
-            play ? audio.play() : audio.pause(); 
+            if(play) { audio.pause(); play = false; } else { audio.play().then(() => { play = true; }).catch(e => { console.error(e); alert("재생할 수 없습니다."); }); }
             document.getElementById('play-icon').className = play ? 'fa-solid fa-pause' : 'fa-solid fa-play'; 
-            document.getElementById('album-art').classList.toggle('spin-slow', play);
-            window.renderPlaylistUI(currentPlaylist); // 아이콘 갱신
+            document.getElementById('album-art').classList.toggle('spin-slow', play); 
+            window.renderPlaylistUI(currentPlaylist); 
         };
-        
-        window.nextSong = () => { 
-            songIdx = (songIdx + 1) % currentPlaylist.length; 
-            window.loadSong(songIdx, true); 
-            window.renderPlaylistUI(currentPlaylist);
-        };
-        
-        window.prevSong = () => { 
-            songIdx = (songIdx - 1 + currentPlaylist.length) % currentPlaylist.length; 
-            window.loadSong(songIdx, true); 
-            window.renderPlaylistUI(currentPlaylist);
-        };
-        
+        window.nextSong = () => { songIdx=(songIdx+1)%currentPlaylist.length; window.loadSong(songIdx, true); window.renderPlaylistUI(currentPlaylist); };
+        window.prevSong = () => { songIdx=(songIdx-1+currentPlaylist.length)%currentPlaylist.length; window.loadSong(songIdx, true); window.renderPlaylistUI(currentPlaylist); };
         audio.addEventListener('ended', window.nextSong);
 
-        // 초기화
-        currentPlaylist = podcastList;
         window.loadSong(0);
         loadRecipes();
     </script>
 </body>
-</html>		
+</html>
