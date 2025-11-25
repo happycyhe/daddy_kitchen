@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap');
+        /* h-[100dvh]는 모바일 브라우저 상단바/하단바를 제외한 '진짜 화면 높이'를 잡아줍니다 */
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #fdfbf7; color: #4a4a4a; user-select: none; }
         .font-serif { font-family: 'Playfair Display', serif; }
         .check-item input:checked + label { text-decoration: line-through; color: #a0a0a0; }
@@ -25,10 +26,11 @@
         .memory-img { aspect-ratio: 1/1; object-fit: cover; border-radius: 0.5rem; }
     </style>
 </head>
-<body class="h-screen w-screen flex flex-col relative overflow-hidden">
+<!-- [수정됨] h-screen 대신 h-[100dvh] 사용 -->
+<body class="h-[100dvh] w-screen flex flex-col overflow-hidden bg-[#fdfbf7]">
 
-    <!-- 헤더 -->
-    <header class="w-full px-6 py-4 flex justify-between items-center bg-white/80 backdrop-blur-md z-10 sticky top-0 border-b border-stone-100">
+    <!-- 헤더 (고정) -->
+    <header class="w-full px-6 py-4 flex justify-between items-center bg-white/80 backdrop-blur-md z-10 border-b border-stone-100 shrink-0">
         <div class="flex items-center gap-2">
             <i class="fa-solid fa-utensils text-amber-500"></i>
             <h1 class="font-serif text-xl font-bold text-stone-800">Daddy's Kitchen</h1>
@@ -40,16 +42,18 @@
         </div>
     </header>
 
-    <!-- 메인 컨텐츠 -->
-    <main id="recipe-container" class="flex-1 overflow-y-auto pb-32 hide-scrollbar transition-opacity duration-300">
+    <!-- 메인 컨텐츠 (스크롤 가능 영역) -->
+    <!-- [수정됨] pb-32 제거 (플레이어가 이제 겹치지 않음) -->
+    <main id="recipe-container" class="flex-1 overflow-y-auto hide-scrollbar transition-opacity duration-300 relative">
         <div class="flex flex-col items-center justify-center h-full text-stone-400">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-amber-500 mb-4"></i>
             <p>주방을 준비하고 있습니다...</p>
         </div>
     </main>
 
-    <!-- 하단 플레이어 -->
-    <div class="absolute bottom-0 w-full bg-white border-t border-stone-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] px-6 py-4 z-20">
+    <!-- 하단 플레이어 (고정, absolute 제거) -->
+    <!-- [수정됨] absolute bottom-0 제거하고 flex 구조 안으로 편입 -->
+    <div class="w-full bg-white border-t border-stone-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] px-6 py-4 z-20 shrink-0">
         <div class="w-full bg-stone-200 h-1 rounded-full mb-4 overflow-hidden cursor-pointer" id="progress-container">
             <div id="progress-bar" class="bg-amber-500 h-full w-0 transition-all duration-100"></div>
         </div>
@@ -128,7 +132,7 @@
                     <input type="text" id="new-servings" class="w-full border rounded-xl px-4 py-2 outline-none focus:border-amber-500" placeholder="인분 (예: 1인분)">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-stone-500 mb-2">재료</label>
+                    <label class="block text-xs font-bold text-stone-500 mb-2">준비 재료</label>
                     <div id="ingredient-input-list" class="space-y-2 mb-2"></div>
                     <button onclick="window.addIngredientRow()" class="text-xs bg-amber-50 text-amber-600 font-bold px-3 py-2 rounded-lg w-full"><i class="fa-solid fa-plus"></i> 재료 추가하기</button>
                 </div>
@@ -149,7 +153,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, query, orderBy, Timestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // ▼▼▼ 본인의 Firebase 키값을 여기에 넣으세요! ▼▼▼
 		 const firebaseConfig = {
 			apiKey: "AIzaSyBIkW8QTdG1qPUlfejf62qr2sfA0hjqpsA",
 			authDomain: "happycyhe.firebaseapp.com",
@@ -159,7 +162,6 @@
 			appId: "1:647575874870:web:73861eaede40ab72d8d797",
 			measurementId: "G-7CNQ2SLXKK"
 		  };
-        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
         let db, isServerMode = false;
         
@@ -287,11 +289,11 @@
         window.addTime = s => { tt+=s; window.updateT(); };
         window.resetTimer = () => { clearInterval(ti); tt=0; window.updateT(); };
         window.toggleTimer = () => { if(ti){ window.stopTimer(); } else { window.startTimer(); } };
-        window.startTimer = () => { tBtn.innerText="일시정지"; tBtn.classList.replace('bg-amber-500','bg-red-500'); ti = setInterval(()=>{ if(tt>0){tt--;window.updateT();}else{window.stopTimer(); alert("끝!");} }, 1000); }
+        window.startTimer = () => { tBtn.innerText="일시정지"; tBtn.classList.replace('bg-amber-500','bg-red-500'); ti = setInterval(()=>{ if(tt>0){tt--;window.updateT();}else{window.stopTimer(); alert("⏰ 타이머 종료!");} }, 1000); }
         window.stopTimer = () => { if(ti) clearInterval(ti); ti=null; tBtn.innerText="시작"; tBtn.classList.replace('bg-red-500','bg-amber-500'); }
 
         const audio = document.getElementById('audio-player');
-        audio.onerror = () => { alert('재생할 수 없는 소스입니다.'); document.getElementById('play-icon').className = 'fa-solid fa-play'; document.getElementById('album-art').classList.remove('spin-slow'); play = false; };
+        audio.onerror = () => { alert('재생 오류. (파일 형식이나 네트워크 문제일 수 있습니다)'); document.getElementById('play-icon').className = 'fa-solid fa-play'; document.getElementById('album-art').classList.remove('spin-slow'); play = false; };
         let play = false, songIdx = 0, currentPlaylist = [], activeTab = 'podcast';
         
         const podcastList = [
