@@ -19,11 +19,12 @@
         .spin-slow { animation: spin 8s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .memory-img { aspect-ratio: 1/1; object-fit: cover; border-radius: 0.5rem; }
+        /* 현재 재생 중인 곡 강조 */
+        .playing-row { background-color: #fffbeb; border-left: 4px solid #f59e0b; }
     </style>
 </head>
 <body class="h-screen w-screen flex flex-col relative overflow-hidden">
 
-    <!-- 1. 헤더 -->
     <header class="w-full px-6 py-4 flex justify-between items-center bg-white/80 backdrop-blur-md z-10 sticky top-0 border-b border-stone-100">
         <div class="flex items-center gap-2">
             <i class="fa-solid fa-utensils text-amber-500"></i>
@@ -36,7 +37,6 @@
         </div>
     </header>
 
-    <!-- 2. 메인 컨텐츠 -->
     <main id="recipe-container" class="flex-1 overflow-y-auto pb-32 hide-scrollbar transition-opacity duration-300">
         <div class="flex flex-col items-center justify-center h-full text-stone-400">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-amber-500 mb-4"></i>
@@ -44,31 +44,59 @@
         </div>
     </main>
 
-    <!-- 3. 하단 플레이어 -->
+    <!-- 하단 뮤직 플레이어 -->
     <div class="absolute bottom-0 w-full bg-white border-t border-stone-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] px-6 py-4 z-20">
         <div class="w-full bg-stone-200 h-1 rounded-full mb-4 overflow-hidden cursor-pointer" id="progress-container">
             <div id="progress-bar" class="bg-amber-500 h-full w-0 transition-all duration-100"></div>
         </div>
         <div class="flex justify-between items-center">
-            <div class="flex items-center gap-3 overflow-hidden">
-                <div id="album-art" class="w-10 h-10 rounded-full bg-stone-800 flex items-center justify-center overflow-hidden shadow-md">
+            <div class="flex items-center gap-3 overflow-hidden" onclick="window.togglePlaylistModal()">
+                <div id="album-art" class="w-10 h-10 rounded-full bg-stone-800 flex items-center justify-center overflow-hidden shadow-md shrink-0">
                     <img src="https://images.unsplash.com/photo-1459749411177-3a269496a607?w=100" class="w-full h-full object-cover opacity-80">
                 </div>
-                <div class="flex-1 min-w-0">
+                <div class="flex-1 min-w-0 cursor-pointer">
                     <p id="song-title" class="font-bold text-sm text-stone-800 truncate">Sunday Morning</p>
-                    <p id="artist-name" class="text-xs text-stone-500 truncate">Cooking Jazz Trio</p>
+                    <p id="artist-name" class="text-xs text-stone-500 truncate">Tap for Playlist 🎵</p>
                 </div>
             </div>
             <div class="flex items-center gap-4 text-stone-700">
                 <button onclick="window.prevSong()"><i class="fa-solid fa-backward-step"></i></button>
                 <button onclick="window.togglePlay()" class="w-10 h-10 bg-amber-500 rounded-full text-white flex items-center justify-center shadow-md"><i id="play-icon" class="fa-solid fa-play ml-1"></i></button>
                 <button onclick="window.nextSong()"><i class="fa-solid fa-forward-step"></i></button>
+                <!-- 플레이리스트 버튼 추가 -->
+                <button onclick="window.togglePlaylistModal()" class="ml-2 text-stone-500 hover:text-amber-500"><i class="fa-solid fa-list-ul text-lg"></i></button>
             </div>
         </div>
         <audio id="audio-player"></audio>
     </div>
 
-    <!-- 4. 타이머 모달 -->
+    <!-- [NEW] 플레이리스트 모달 -->
+    <div id="playlist-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center backdrop-blur-sm">
+        <div class="bg-white w-full sm:w-96 h-[60vh] sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">플레이리스트</h3>
+                <button onclick="window.togglePlaylistModal()"><i class="fa-solid fa-chevron-down text-xl"></i></button>
+            </div>
+            
+            <!-- 탭 버튼 -->
+            <div class="flex p-1 bg-stone-100 rounded-xl mb-4">
+                <button onclick="window.switchTab('podcast')" id="tab-podcast" class="flex-1 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-stone-800 transition">📻 추천 채널</button>
+                <button onclick="window.switchTab('local')" id="tab-local" class="flex-1 py-2 text-sm font-bold rounded-lg text-stone-400 transition">📂 내 파일</button>
+            </div>
+
+            <!-- 리스트 영역 -->
+            <div class="flex-1 overflow-y-auto space-y-2 pr-1 hide-scrollbar" id="playlist-content">
+                <!-- 자바스크립트로 채워짐 -->
+            </div>
+
+            <!-- 내 파일 추가 버튼 (내 파일 탭일 때만 보임) -->
+            <div id="local-upload-btn" class="hidden mt-4">
+                <button onclick="document.getElementById('music-files-input').click()" class="w-full py-3 bg-stone-800 text-white font-bold rounded-xl">+ 내 폰에서 음악 가져오기</button>
+                <p class="text-xs text-center text-stone-400 mt-2">* 여러 곡 선택 가능</p>
+            </div>
+        </div>
+    </div>
+
     <div id="timer-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-6 w-80 shadow-2xl text-center">
             <h3 class="text-xl font-bold mb-1">키친 타이머</h3>
@@ -86,7 +114,7 @@
         </div>
     </div>
 
-    <!-- 5. 레시피 추가 모달 -->
+    <!-- 레시피 추가 모달 -->
     <div id="add-recipe-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center backdrop-blur-sm">
         <div class="bg-white w-full sm:w-96 h-[90vh] sm:h-auto sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl flex flex-col">
             <div class="flex justify-between items-center mb-4">
@@ -94,44 +122,37 @@
                 <button onclick="window.closeAddRecipeModal()"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <div class="flex-1 overflow-y-auto space-y-4 pr-1 hide-scrollbar">
-                <!-- 사진 업로드 -->
                 <div class="w-full h-40 bg-stone-100 rounded-xl border-2 border-dashed border-stone-300 flex flex-col items-center justify-center cursor-pointer hover:bg-stone-50 transition relative overflow-hidden" onclick="document.getElementById('cover-input').click()">
                     <img id="cover-preview" class="absolute inset-0 w-full h-full object-cover hidden">
-                    <div id="cover-placeholder" class="text-center text-stone-400">
-                        <i class="fa-solid fa-camera text-3xl mb-2"></i><p class="text-xs">요리 완성 사진 등록</p>
-                    </div>
+                    <div id="cover-placeholder" class="text-center text-stone-400"><i class="fa-solid fa-camera text-3xl mb-2"></i><p class="text-xs">대표 사진 등록</p></div>
                     <input type="file" id="cover-input" accept="image/*" hidden onchange="window.handleCoverUpload(event)">
                 </div>
-
-                <input type="text" id="new-title" class="w-full border rounded-xl px-4 py-2 focus:border-amber-500 outline-none" placeholder="요리 이름 (필수)">
-                <input type="text" id="new-subtitle" class="w-full border rounded-xl px-4 py-2 focus:border-amber-500 outline-none" placeholder="부제 (예: Spicy Chicken)">
+                <input type="text" id="new-title" class="w-full border rounded-xl px-4 py-2 outline-none focus:border-amber-500" placeholder="요리 이름 (필수)">
+                <input type="text" id="new-subtitle" class="w-full border rounded-xl px-4 py-2 outline-none focus:border-amber-500" placeholder="영어 부제 (선택)">
                 <div class="grid grid-cols-2 gap-2">
-                    <input type="text" id="new-time" class="w-full border rounded-xl px-4 py-2 focus:border-amber-500 outline-none" placeholder="시간 (예: 15분)">
-                    <input type="text" id="new-servings" class="w-full border rounded-xl px-4 py-2 focus:border-amber-500 outline-none" placeholder="인분 (예: 1인분)">
+                    <input type="text" id="new-time" class="w-full border rounded-xl px-4 py-2 outline-none focus:border-amber-500" placeholder="시간 (예: 15분)">
+                    <input type="text" id="new-servings" class="w-full border rounded-xl px-4 py-2 outline-none focus:border-amber-500" placeholder="인분 (예: 1인분)">
                 </div>
-                
-                <!-- 재료 -->
                 <div>
                     <label class="block text-xs font-bold text-stone-500 mb-2">준비 재료</label>
                     <div id="ingredient-input-list" class="space-y-2 mb-2"></div>
                     <button onclick="window.addIngredientRow()" class="text-xs bg-amber-50 text-amber-600 font-bold px-3 py-2 rounded-lg w-full"><i class="fa-solid fa-plus"></i> 재료 추가하기</button>
                 </div>
-
-                <!-- 조리 순서 -->
                 <div>
-                    <label class="block text-xs font-bold text-stone-500 mb-2">조리 순서 (타이머 설정 가능)</label>
+                    <label class="block text-xs font-bold text-stone-500 mb-2">조리 순서</label>
                     <div id="step-input-list" class="space-y-2 mb-2"></div>
                     <button onclick="window.addStepRow()" class="text-xs bg-amber-50 text-amber-600 font-bold px-3 py-2 rounded-lg w-full"><i class="fa-solid fa-plus"></i> 순서 추가하기</button>
                 </div>
             </div>
-            <button onclick="window.saveNewRecipe()" class="mt-4 w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl shadow-md flex justify-center items-center gap-2">
-                <i class="fa-solid fa-cloud-arrow-up"></i> 서버에 저장하기
-            </button>
+            <button onclick="window.saveNewRecipe()" class="mt-4 w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl shadow-md flex justify-center items-center gap-2"><i class="fa-solid fa-cloud-arrow-up"></i> 서버에 저장하기</button>
         </div>
     </div>
     
+    <!-- 파일 인풋들 -->
     <input type="file" id="file-input" accept="image/*" class="hidden" onchange="window.handleImageUpload(event)">
-	<script type="module">
+    <!-- [NEW] 다중 선택 가능한 음악 파일 인풋 -->
+    <input type="file" id="music-files-input" accept="audio/*" multiple class="hidden" onchange="window.handleLocalMusicSelect(event)">
+<script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, query, orderBy, Timestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -175,7 +196,6 @@
             document.getElementById('recipe-container').innerHTML = `<div class="flex flex-col items-center justify-center h-full text-stone-400 px-6 text-center"><i class="fa-solid fa-plate-wheat text-6xl text-stone-200 mb-4"></i><h3 class="text-xl font-bold text-stone-600 mb-2">레시피가 없습니다</h3><p class="text-sm mb-6">오른쪽 위 + 버튼을 눌러<br>첫 번째 요리를 기록해보세요!</p></div>`;
         }
 
-        // 이미지 압축 함수 (모바일 최적화: 500px, 0.5퀄리티)
         function resizeImage(file, maxWidth) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -226,73 +246,37 @@
                 }
             });
 
-            if(steps.length === 0) { alert("조리 순서를 1개 이상 입력해주세요."); return; }
+            if(steps.length === 0) { alert("순서를 입력해주세요."); return; }
 
             const finalImage = coverImageBase64 || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800";
-
             const newRecipe = {
                 title, subtitle: document.getElementById('new-subtitle').value,
                 difficulty: "미정", time: document.getElementById('new-time').value, servings: document.getElementById('new-servings').value,
                 image: finalImage, tag: "나만의 요리", ingredients: ings, steps: steps, createdAt: Timestamp.now()
             };
             
-            // 용량 안전장치
-            if(new Blob([JSON.stringify(newRecipe)]).size > 950000) { alert("사진 용량이 큽니다. 다른 사진을 써주세요."); return; }
+            if(new Blob([JSON.stringify(newRecipe)]).size > 950000) { alert("사진 용량이 큽니다."); return; }
 
-            try {
-                await addDoc(collection(db,"recipes"), newRecipe);
-                alert("저장 완료!"); window.closeAddRecipeModal(); loadRecipes();
-            } catch(e) { alert("저장 실패: " + e.message); }
+            try { await addDoc(collection(db,"recipes"), newRecipe); alert("저장 완료!"); window.closeAddRecipeModal(); loadRecipes(); } catch(e) { alert("실패: "+e.message); }
         }
 
         window.deleteRecipe = async function(id) {
-            if(!confirm("정말 삭제하시겠습니까?")) return;
-            try {
-                await deleteDoc(doc(db, "recipes", id));
-                alert("삭제되었습니다.");
-                if(currentRecipeIdx >= recipes.length - 1) currentRecipeIdx = Math.max(0, recipes.length - 2);
-                loadRecipes();
-            } catch(e) { alert("오류: " + e.message); }
+            if(!confirm("삭제하시겠습니까?")) return;
+            try { await deleteDoc(doc(db, "recipes", id)); alert("삭제됨"); if(currentRecipeIdx >= recipes.length-1) currentRecipeIdx = Math.max(0, recipes.length-2); loadRecipes(); } catch(e) { alert(e.message); }
         }
 		window.renderRecipe = function(idx) {
             if(recipes.length===0) { renderEmpty(); return; }
             if(idx < 0) idx = 0; if(idx >= recipes.length) idx = recipes.length - 1;
             currentRecipeIdx = idx;
-
             const r = recipes[idx];
             const memories = window.getMemories(r.title);
             const container = document.getElementById('recipe-container');
             
             let ingHtml = r.ingredients.map((ing,i)=>`<div class="flex justify-between items-center bg-white p-3 rounded-xl border mb-2"><div class="flex gap-2"><input type="checkbox" id="ig-${i}"><label for="ig-${i}">${ing.name}</label></div><span class="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">${ing.amount||''}</span></div>`).join('');
-            
-            let stepHtml = r.steps.map((st,i)=>`
-                <div class="flex gap-4 mb-4 group">
-                    <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-sm shrink-0">${i+1}</div>
-                    <div class="flex-1">
-                        <p class="leading-relaxed cursor-pointer" onclick="this.classList.toggle('line-through'); this.classList.toggle('opacity-40')">${st.text}</p>
-                        ${st.timer ? `<button onclick="window.setAndStartTimer(${st.timer}, event)" class="mt-2 flex items-center gap-1 text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-2 rounded-lg font-bold transition"><i class="fa-solid fa-stopwatch"></i> ${Math.floor(st.timer/60)}분 타이머 시작</button>` : ''}
-                    </div>
-                </div>`).join('');
-            
-            let memHtml = memories.map(m=>`<div class="relative"><p class="text-xs mb-1">📅 ${m.date}</p><img src="${m.image}" class="w-full rounded-lg shadow"><button onclick="window.delMem('${r.title}',${m.id})" class="absolute top-6 right-2 text-white bg-black/50 w-6 h-6 rounded-full text-xs">X</button></div>`).join('');
+            let stepHtml = r.steps.map((st,i)=>`<div class="flex gap-4 mb-4 group"><div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-sm shrink-0">${i+1}</div><div class="flex-1"><p class="leading-relaxed cursor-pointer" onclick="this.classList.toggle('line-through'); this.classList.toggle('opacity-40')">${st.text}</p>${st.timer?`<button onclick="window.setAndStartTimer(${st.timer}, event)" class="mt-2 flex items-center gap-1 text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-2 rounded-lg font-bold transition"><i class="fa-solid fa-stopwatch"></i> ${Math.floor(st.timer/60)}분 타이머 시작</button>`:''}</div></div>`).join('');
+            let memHtml = memories.map(m=>`<div class="relative"><p class="text-xs mb-1">📅 ${m.date}</p><img src="${m.image}" class="w-full rounded-lg shadow"><button onclick="window.delMem('${r.title}',${m.id})" class="absolute top-2 right-2 text-white bg-black/50 w-8 h-8 rounded-full flex items-center justify-center text-xs"><i class="fa-solid fa-trash"></i></button></div>`).join('');
 
-            container.innerHTML = `
-                <div class="fade-in">
-                    <div class="relative w-full h-64 bg-gray-200">
-                        <img src="${r.image}" class="w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6 text-white"><h2 class="text-3xl font-serif font-bold drop-shadow-md">${r.title}</h2></div>
-                        <button onclick="window.deleteRecipe('${r.id}')" class="absolute top-4 right-4 bg-black/40 hover:bg-red-500 text-white w-10 h-10 rounded-full backdrop-blur-sm transition flex items-center justify-center shadow-lg"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                    <div class="p-6">
-                        <div class="flex justify-between text-center mb-8 bg-white p-4 rounded-xl border"><div><p class="text-xs text-gray-400">시간</p><p class="font-bold">${r.time||'-'}</p></div><div class="w-px bg-gray-100"></div><div><p class="text-xs text-gray-400">인분</p><p class="font-bold">${r.servings||'-'}</p></div><div class="w-px bg-gray-100"></div><div><p class="text-xs text-gray-400">순서</p><p class="font-bold">${idx + 1}/${recipes.length}</p></div></div>
-                        <h3 class="font-bold mb-4">준비 재료</h3><div class="mb-8">${ingHtml}</div>
-                        <h3 class="font-bold mb-4">조리 순서</h3><div class="mb-8">${stepHtml}</div>
-                        <h3 class="font-bold mb-4 flex justify-between">추억 앨범 <button onclick="window.triggerFile()" class="text-xs bg-amber-100 px-2 py-1 rounded text-amber-700">+ 사진 추가</button></h3>
-                        <div class="space-y-4">${memHtml || '<p class="text-center text-xs text-gray-400 py-4 border border-dashed rounded">만든 요리를 찍어서 남겨보세요!</p>'}</div>
-                        <div class="h-10"></div>
-                        ${recipes.length > 1 ? '<p class="text-center text-xs text-gray-400 pb-4">↔ 좌우로 밀어서 이동</p>' : ''}
-                    </div>
-                </div>`;
+            container.innerHTML = `<div class="fade-in"><div class="relative w-full h-64 bg-gray-200"><img src="${r.image}" class="w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6 text-white"><h2 class="text-3xl font-serif font-bold drop-shadow-md">${r.title}</h2></div><button onclick="window.deleteRecipe('${r.id}')" class="absolute top-4 right-4 bg-black/40 hover:bg-red-500 text-white w-10 h-10 rounded-full backdrop-blur-sm transition flex items-center justify-center shadow-lg"><i class="fa-solid fa-trash"></i></button></div><div class="p-6"><div class="flex justify-between text-center mb-8 bg-white p-4 rounded-xl border"><div><p class="text-xs text-gray-400">시간</p><p class="font-bold">${r.time||'-'}</p></div><div class="w-px bg-gray-100"></div><div><p class="text-xs text-gray-400">인분</p><p class="font-bold">${r.servings||'-'}</p></div><div class="w-px bg-gray-100"></div><div><p class="text-xs text-gray-400">순서</p><p class="font-bold">${idx + 1}/${recipes.length}</p></div></div><h3 class="font-bold mb-4">준비 재료</h3><div class="mb-8">${ingHtml}</div><h3 class="font-bold mb-4">조리 순서</h3><div class="mb-8">${stepHtml}</div><h3 class="font-bold mb-4 flex justify-between">추억 앨범 <button onclick="window.triggerFile()" class="text-xs bg-amber-100 px-2 py-1 rounded text-amber-700">+ 사진 추가</button></h3><div class="space-y-4">${memHtml || '<p class="text-center text-xs text-gray-400 py-4 border border-dashed rounded">만든 요리를 찍어서 남겨보세요!</p>'}</div><div class="h-10"></div>${recipes.length > 1 ? '<p class="text-center text-xs text-gray-400 pb-4">↔ 좌우로 이동</p>' : ''}</div></div>`;
         }
 
         let ts=0, te=0;
@@ -301,25 +285,16 @@
         rc.addEventListener('touchend', e=>{ te=e.changedTouches[0].screenX; if(te>ts+50 && currentRecipeIdx>0) {currentRecipeIdx--; window.renderRecipe(currentRecipeIdx);} if(te<ts-50 && currentRecipeIdx<recipes.length-1){currentRecipeIdx++; window.renderRecipe(currentRecipeIdx);} }, {passive:true});
 
         window.getMemories = t => JSON.parse(localStorage.getItem('daddys_mem')||'{}')[t]||[];
-        window.saveMem = (t,d) => { const m=JSON.parse(localStorage.getItem('daddys_mem')||'{}'); if(!m[t])m[t]=[]; m[t].unshift({date:new Date().toLocaleDateString(), image:d, id:Date.now()}); try{localStorage.setItem('daddys_mem',JSON.stringify(m)); window.renderRecipe(currentRecipeIdx);}catch(e){alert("사진 용량이 부족합니다.");} };
-        window.delMem = (t,id) => { if(!confirm('삭제하시겠습니까?'))return; const m=JSON.parse(localStorage.getItem('daddys_mem')||'{}'); m[t]=m[t].filter(x=>x.id!==id); localStorage.setItem('daddys_mem',JSON.stringify(m)); window.renderRecipe(currentRecipeIdx); };
+        window.saveMem = (t,d) => { const m=JSON.parse(localStorage.getItem('daddys_mem')||'{}'); if(!m[t])m[t]=[]; m[t].unshift({date:new Date().toLocaleDateString(), image:d, id:Date.now()}); try{localStorage.setItem('daddys_mem',JSON.stringify(m)); window.renderRecipe(currentRecipeIdx);}catch(e){alert("사진 용량 부족");} };
+        window.delMem = (t,id) => { if(!confirm('삭제?'))return; const m=JSON.parse(localStorage.getItem('daddys_mem')||'{}'); m[t]=m[t].filter(x=>x.id!==id); localStorage.setItem('daddys_mem',JSON.stringify(m)); window.renderRecipe(currentRecipeIdx); };
         window.triggerFile = () => document.getElementById('file-input').click();
         window.handleImageUpload = e => { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=ev=>window.saveMem(recipes[currentRecipeIdx].title, ev.target.result); r.readAsDataURL(f); e.target.value=''; };
 
         const addModal = document.getElementById('add-recipe-modal');
-        window.openAddRecipeModal = () => { 
-            addModal.classList.remove('hidden'); 
-            document.getElementById('cover-preview').classList.add('hidden');
-            document.getElementById('cover-placeholder').classList.remove('hidden');
-            document.getElementById('cover-input').value = '';
-            coverImageBase64 = null;
-            document.getElementById('ingredient-input-list').innerHTML = '';
-            document.getElementById('step-input-list').innerHTML = '';
-            window.addIngredientRow(); window.addStepRow();
-        };
+        window.openAddRecipeModal = () => { addModal.classList.remove('hidden'); document.getElementById('cover-preview').classList.add('hidden'); document.getElementById('cover-placeholder').classList.remove('hidden'); document.getElementById('cover-input').value=''; coverImageBase64=null; document.getElementById('ingredient-input-list').innerHTML=''; document.getElementById('step-input-list').innerHTML=''; window.addIngredientRow(); window.addStepRow(); };
         window.closeAddRecipeModal = () => addModal.classList.add('hidden');
-        window.addIngredientRow = () => { const d=document.createElement('div'); d.className="flex gap-2 mb-2"; d.innerHTML=`<input class="ing-name border rounded px-2 py-2 w-full text-sm outline-none focus:border-amber-500" placeholder="재료명"><input class="ing-amount border rounded px-2 py-2 w-24 text-sm outline-none focus:border-amber-500" placeholder="양"><button onclick="this.parentElement.remove()" class="text-red-400 px-1"><i class="fa-solid fa-minus"></i></button>`; document.getElementById('ingredient-input-list').appendChild(d); };
-        window.addStepRow = () => { const d=document.createElement('div'); d.className="flex gap-2 mb-2 items-center"; d.innerHTML=`<input class="step-text border rounded px-2 py-2 w-full text-sm outline-none focus:border-amber-500" placeholder="설명"><div class="flex items-center gap-1 bg-stone-100 rounded px-2"><i class="fa-regular fa-clock text-stone-400 text-xs"></i><input type="number" class="step-time bg-transparent py-2 w-8 text-sm text-center outline-none" placeholder="분"></div><button onclick="this.parentElement.remove()" class="text-red-400 px-1"><i class="fa-solid fa-minus"></i></button>`; document.getElementById('step-input-list').appendChild(d); };
+        window.addIngredientRow = () => { const d=document.createElement('div'); d.className="flex gap-2 mb-2"; d.innerHTML=`<input class="ing-name border rounded px-2 py-2 w-full text-sm outline-none focus:border-amber-500" placeholder="재료명"><input class="ing-amount border rounded px-2 py-2 w-24 text-sm outline-none focus:border-amber-500" placeholder="양"><button onclick="this.parentElement.remove()" class="text-red-400 px-1">X</button>`; document.getElementById('ingredient-input-list').appendChild(d); };
+        window.addStepRow = () => { const d=document.createElement('div'); d.className="flex gap-2 mb-2 items-center"; d.innerHTML=`<input class="step-text border rounded px-2 py-2 w-full text-sm outline-none focus:border-amber-500" placeholder="설명"><div class="flex items-center gap-1 bg-stone-100 rounded px-2"><i class="fa-regular fa-clock text-stone-400 text-xs"></i><input type="number" class="step-time bg-transparent py-2 w-8 text-sm text-center outline-none" placeholder="분"></div><button onclick="this.parentElement.remove()" class="text-red-400 px-1">X</button>`; document.getElementById('step-input-list').appendChild(d); };
 
         let tt=0, ti;
         const tDisplay=document.getElementById('timer-display'), tBtn=document.getElementById('timer-btn');
@@ -332,21 +307,135 @@
         window.startTimer = () => { tBtn.innerText="일시정지"; tBtn.classList.replace('bg-amber-500','bg-red-500'); ti = setInterval(()=>{ if(tt>0){tt--;window.updateT();}else{window.stopTimer(); alert("⏰ 타이머 종료!");} }, 1000); }
         window.stopTimer = () => { if(ti) clearInterval(ti); ti=null; tBtn.innerText="시작"; tBtn.classList.replace('bg-red-500','bg-amber-500'); }
 
+        // [NEW] 플레이리스트 로직
         const audio = document.getElementById('audio-player');
         let play = false;
-        const playlist = [
-            { title: "Cafe Jazz Vibes", artist: "Background Music", src: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Chad_Crouch/Arps/Chad_Crouch_-_Elipsis.mp3", cover: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=100&auto=format&fit=crop" },
-            { title: "Soft Piano Cooking", artist: "Daddy's Kitchen", src: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Kai_Engel/Satin/Kai_Engel_-_04_-_Sentinel.mp3", cover: "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=100&auto=format&fit=crop" }
-        ];
+        let currentPlaylist = []; // {title, artist, src, isFile}
         let songIdx = 0;
-        window.loadSong = (idx) => { const s=playlist[idx]; document.getElementById('song-title').innerText=s.title; document.getElementById('artist-name').innerText=s.artist; document.querySelector('#album-art img').src=s.cover; audio.src=s.src; }
-        window.togglePlay = () => { play=!play; play?audio.play():audio.pause(); document.getElementById('play-icon').className = play ? 'fa-solid fa-pause' : 'fa-solid fa-play'; document.getElementById('album-art').classList.toggle('spin-slow', play); };
-        window.nextSong = () => { songIdx=(songIdx+1)%playlist.length; window.loadSong(songIdx); if(play) audio.play(); };
-        window.prevSong = () => { songIdx=(songIdx-1+playlist.length)%playlist.length; window.loadSong(songIdx); if(play) audio.play(); };
+
+        const podcastList = [
+            { title: "Cafe Jazz Vibes", artist: "Bensound (Free)", src: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Chad_Crouch/Arps/Chad_Crouch_-_Elipsis.mp3" },
+            { title: "Cooking Piano", artist: "Keys of Moon", src: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Kai_Engel/Satin/Kai_Engel_-_04_-_Sentinel.mp3" },
+            { title: "Lofi Cooking", artist: "Lofi Records", src: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/KieLoKaz/Free_Ganymed/KieLoKaz_-_01_-_Reunion_of_the_Spaceducks.mp3" }
+        ];
+
+        let activeTab = 'podcast';
+
+        window.togglePlaylistModal = () => {
+            const modal = document.getElementById('playlist-modal');
+            if(modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                window.switchTab(activeTab);
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        window.switchTab = (tab) => {
+            activeTab = tab;
+            const btnPodcast = document.getElementById('tab-podcast');
+            const btnLocal = document.getElementById('tab-local');
+            const content = document.getElementById('playlist-content');
+            const uploadBtn = document.getElementById('local-upload-btn');
+
+            if(tab === 'podcast') {
+                btnPodcast.className = "flex-1 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-stone-800 transition";
+                btnLocal.className = "flex-1 py-2 text-sm font-bold rounded-lg text-stone-400 transition";
+                uploadBtn.classList.add('hidden');
+                window.renderPlaylistUI(podcastList);
+            } else {
+                btnLocal.className = "flex-1 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-stone-800 transition";
+                btnPodcast.className = "flex-1 py-2 text-sm font-bold rounded-lg text-stone-400 transition";
+                uploadBtn.classList.remove('hidden');
+                // 로컬은 현재 선택된게 없으면 안내 문구
+                if(currentPlaylist.length > 0 && currentPlaylist[0].isFile) {
+                    window.renderPlaylistUI(currentPlaylist);
+                } else {
+                    content.innerHTML = `<div class="text-center py-8 text-stone-400 text-sm">아직 불러온 파일이 없습니다.<br>아래 버튼을 눌러 음악을 추가하세요.</div>`;
+                }
+            }
+        }
+
+        window.handleLocalMusicSelect = (e) => {
+            const files = Array.from(e.target.files);
+            if(files.length === 0) return;
+            
+            const newPlaylist = files.map(f => ({
+                title: f.name,
+                artist: "내 기기",
+                src: URL.createObjectURL(f),
+                isFile: true
+            }));
+            
+            currentPlaylist = newPlaylist;
+            songIdx = 0;
+            window.renderPlaylistUI(currentPlaylist);
+            window.loadSong(0, true); // 바로 재생
+        }
+
+        window.renderPlaylistUI = (list) => {
+            const content = document.getElementById('playlist-content');
+            content.innerHTML = list.map((item, i) => `
+                <div onclick="window.playSpecificSong(${i})" class="flex justify-between items-center p-3 rounded-xl hover:bg-stone-50 cursor-pointer ${ (currentPlaylist === list && songIdx === i) ? 'playing-row' : '' }">
+                    <div>
+                        <p class="text-sm font-bold text-stone-800 truncate w-48">${item.title}</p>
+                        <p class="text-xs text-stone-400">${item.artist}</p>
+                    </div>
+                    ${ (currentPlaylist === list && songIdx === i && play) ? '<i class="fa-solid fa-volume-high text-amber-500"></i>' : '<i class="fa-solid fa-play text-stone-300"></i>' }
+                </div>
+            `).join('');
+        }
+
+        window.playSpecificSong = (idx) => {
+            // 현재 탭의 리스트를 활성 플레이리스트로 설정
+            if(activeTab === 'podcast') currentPlaylist = podcastList;
+            // (로컬은 이미 currentPlaylist에 있음)
+            
+            songIdx = idx;
+            window.loadSong(songIdx, true);
+            window.renderPlaylistUI(currentPlaylist); // UI 갱신
+        }
+
+        window.loadSong = (idx, autoPlay = false) => {
+            if(currentPlaylist.length === 0) currentPlaylist = podcastList; // 초기값
+            const s = currentPlaylist[idx];
+            document.getElementById('song-title').innerText = s.title;
+            document.getElementById('artist-name').innerText = s.artist;
+            audio.src = s.src;
+            if(autoPlay) {
+                audio.play();
+                play = true;
+                document.getElementById('play-icon').className = 'fa-solid fa-pause';
+                document.getElementById('album-art').classList.add('spin-slow');
+            }
+        }
+
+        window.togglePlay = () => { 
+            play = !play; 
+            play ? audio.play() : audio.pause(); 
+            document.getElementById('play-icon').className = play ? 'fa-solid fa-pause' : 'fa-solid fa-play'; 
+            document.getElementById('album-art').classList.toggle('spin-slow', play);
+            window.renderPlaylistUI(currentPlaylist); // 아이콘 갱신
+        };
+        
+        window.nextSong = () => { 
+            songIdx = (songIdx + 1) % currentPlaylist.length; 
+            window.loadSong(songIdx, true); 
+            window.renderPlaylistUI(currentPlaylist);
+        };
+        
+        window.prevSong = () => { 
+            songIdx = (songIdx - 1 + currentPlaylist.length) % currentPlaylist.length; 
+            window.loadSong(songIdx, true); 
+            window.renderPlaylistUI(currentPlaylist);
+        };
+        
         audio.addEventListener('ended', window.nextSong);
 
+        // 초기화
+        currentPlaylist = podcastList;
         window.loadSong(0);
         loadRecipes();
     </script>
 </body>
-</html>
+</html>		
