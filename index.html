@@ -14,14 +14,15 @@
         .check-item input:checked + label::before { background-color: #fbbf24; border-color: #fbbf24; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .spin-slow { animation: spin 8s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .spin-slow { animation: spin 8s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .memory-img { aspect-ratio: 1/1; object-fit: cover; border-radius: 0.5rem; }
     </style>
 </head>
 <body class="h-screen w-screen flex flex-col relative overflow-hidden">
+    <!-- 헤더 -->
     <header class="w-full px-6 py-4 flex justify-between items-center bg-white/80 backdrop-blur-md z-10 sticky top-0 border-b border-stone-100">
         <div class="flex items-center gap-2">
             <i class="fa-solid fa-utensils text-amber-500"></i>
@@ -33,12 +34,16 @@
             <button onclick="window.toggleTimerModal()" class="text-stone-600 hover:text-amber-500"><i class="fa-regular fa-clock text-xl"></i></button>
         </div>
     </header>
+
+    <!-- 메인 -->
     <main id="recipe-container" class="flex-1 overflow-y-auto pb-32 hide-scrollbar transition-opacity duration-300">
         <div class="flex flex-col items-center justify-center h-full text-stone-400">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-amber-500 mb-4"></i>
-            <p>레시피 로딩중...</p>
+            <p>레시피를 불러오는 중입니다...</p>
         </div>
     </main>
+
+    <!-- 뮤직 플레이어 -->
     <div class="absolute bottom-0 w-full bg-white border-t border-stone-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] px-6 py-4 z-20">
         <div class="w-full bg-stone-200 h-1 rounded-full mb-4 overflow-hidden cursor-pointer" id="progress-container">
             <div id="progress-bar" class="bg-amber-500 h-full w-0 transition-all duration-100"></div>
@@ -61,6 +66,8 @@
         </div>
         <audio id="audio-player"></audio>
     </div>
+
+    <!-- 타이머 모달 -->
     <div id="timer-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-6 w-80 shadow-2xl text-center">
             <h3 class="text-xl font-bold mb-1">키친 타이머</h3>
@@ -77,6 +84,8 @@
             <button onclick="window.toggleTimerModal()" class="mt-4 text-sm text-stone-400 underline">닫기</button>
         </div>
     </div>
+
+    <!-- 레시피 추가 모달 -->
     <div id="add-recipe-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center backdrop-blur-sm">
         <div class="bg-white w-full sm:w-96 h-[90vh] sm:h-auto sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl flex flex-col">
             <div class="flex justify-between items-center mb-4">
@@ -84,7 +93,7 @@
                 <button onclick="window.closeAddRecipeModal()"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <div class="flex-1 overflow-y-auto space-y-4 pr-1 hide-scrollbar">
-                <input type="text" id="new-title" class="w-full border rounded-xl px-4 py-2" placeholder="요리 이름">
+                <input type="text" id="new-title" class="w-full border rounded-xl px-4 py-2" placeholder="요리 이름 (필수)">
                 <input type="text" id="new-subtitle" class="w-full border rounded-xl px-4 py-2" placeholder="영어 부제">
                 <div class="grid grid-cols-2 gap-2">
                     <input type="text" id="new-time" class="w-full border rounded-xl px-4 py-2" placeholder="시간 (예: 15분)">
@@ -95,26 +104,26 @@
                     <div id="ingredient-input-list" class="space-y-2 mb-2"></div>
                     <button onclick="window.addIngredientRow()" class="text-xs bg-amber-50 text-amber-600 font-bold px-3 py-2 rounded-lg"><i class="fa-solid fa-plus"></i> 추가</button>
                 </div>
-                <textarea id="new-steps" class="w-full h-32 border rounded-xl px-4 py-2" placeholder="조리 순서 (줄바꿈으로 구분)"></textarea>
+                <textarea id="new-steps" class="w-full h-32 border rounded-xl px-4 py-2" placeholder="조리 순서 (줄바꿈으로 구분, 필수)"></textarea>
             </div>
             <button onclick="window.saveNewRecipe()" class="mt-4 w-full py-3 bg-amber-500 text-white font-bold rounded-xl shadow-md">서버에 저장</button>
         </div>
     </div>
     <input type="file" id="file-input" accept="image/*" class="hidden" onchange="window.handleImageUpload(event)">
-<script type="module">
+	<script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, query, orderBy, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, Timestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // ▼▼▼ 본인의 Firebase 키값으로 교체하세요 ▼▼▼
          const firebaseConfig = {
-            apiKey: "AIzaSyBIkW8QTdG1qPUlfejf62qr2sfA0hjqpsA",
-            authDomain: "happycyhe.firebaseapp.com",
-            projectId: "happycyhe",
-            storageBucket: "happycyhe.firebasestorage.app",
-            messagingSenderId: "647575874870",
-            appId: "1:647575874870:web:73861eaede40ab72d8d797",
-            measurementId: "G-7CNQ2SLXKK"
-          };
+				apiKey: "AIzaSyBIkW8QTdG1qPUlfejf62qr2sfA0hjqpsA",
+				authDomain: "happycyhe.firebaseapp.com",
+				projectId: "happycyhe",
+				storageBucket: "happycyhe.firebasestorage.app",
+				messagingSenderId: "647575874870",
+				appId: "1:647575874870:web:73861eaede40ab72d8d797",
+				measurementId: "G-7CNQ2SLXKK"
+		};
         // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
         let db;
@@ -123,28 +132,39 @@
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 document.getElementById('server-status').classList.replace('bg-red-400', 'bg-green-400');
+                document.getElementById('server-status').title = "서버 연결됨";
             }
         } catch(e) { console.error(e); }
 
         let recipes = [], currentRecipeIdx = 0;
-        const fallbackRecipes = [{title: "기본 레시피", subtitle: "Basic Recipe", difficulty: "쉬움", time: "10분", servings: "1인분", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800", tag: "기본", ingredients: [{name:"재료1",amount:"1개"}], steps: [{text:"맛있게 만드세요", timer: null}]}];
 
         async function loadRecipes() {
-            if(!db) { recipes=[...fallbackRecipes]; window.renderRecipe(0); return; }
+            if(!db) { renderEmpty(); return; }
             try {
                 const q = query(collection(db, "recipes"), orderBy("createdAt", "desc"));
                 const snp = await getDocs(q);
-                recipes=[]; snp.forEach(d=>recipes.push({id:d.id,...d.data()}));
-                if(recipes.length===0) recipes=[...fallbackRecipes];
-                window.renderRecipe(0);
-            } catch(e) { recipes=[...fallbackRecipes]; window.renderRecipe(0); }
+                recipes=[]; 
+                snp.forEach(d=>recipes.push({id:d.id,...d.data()}));
+                
+                if(recipes.length===0) renderEmpty();
+                else window.renderRecipe(0);
+            } catch(e) { renderEmpty(); }
+        }
+
+        function renderEmpty() {
+            document.getElementById('recipe-container').innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-stone-400 px-6 text-center">
+                    <i class="fa-solid fa-plate-wheat text-6xl text-stone-200 mb-4"></i>
+                    <h3 class="text-xl font-bold text-stone-600 mb-2">레시피가 없습니다</h3>
+                    <p class="text-sm mb-6">오른쪽 위 + 버튼을 눌러<br>첫 번째 요리를 기록해보세요!</p>
+                </div>`;
         }
 
         window.saveNewRecipe = async function() {
             if(!db) { alert("Firebase 키를 설정해주세요."); return; }
             const title = document.getElementById('new-title').value;
             const stepsText = document.getElementById('new-steps').value;
-            if(!title || !stepsText) { alert("내용을 입력해주세요."); return; }
+            if(!title || !stepsText) { alert("요리 이름과 조리 순서는 필수입니다."); return; }
 
             const ings=[]; 
             document.querySelectorAll('.ing-name').forEach((el,i)=> { if(el.value) ings.push({name:el.value, amount:document.querySelectorAll('.ing-amount')[i].value}); });
@@ -152,7 +172,7 @@
             const newRecipe = {
                 title, subtitle: document.getElementById('new-subtitle').value,
                 difficulty: "미정", time: document.getElementById('new-time').value, servings: document.getElementById('new-servings').value,
-                image: "https://images.unsplash.com/photo-1493770348161-369560ae357d?w=800", tag: "나만의 요리", ingredients: ings,
+                image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800", tag: "나만의 요리", ingredients: ings,
                 steps: stepsText.split('\n').filter(l=>l.trim()).map(l=>({text:l, timer:null})),
                 createdAt: Timestamp.now()
             };
@@ -160,8 +180,20 @@
             alert("저장 완료!"); window.closeAddRecipeModal(); loadRecipes();
         }
 
-        window.renderRecipe = function(idx) {
-            if(recipes.length===0) return;
+        window.deleteRecipe = async function(id) {
+            if(!confirm("이 레시피를 정말 삭제하시겠습니까?")) return;
+            try {
+                await deleteDoc(doc(db, "recipes", id));
+                alert("삭제되었습니다.");
+                if(currentRecipeIdx >= recipes.length - 1) currentRecipeIdx = Math.max(0, recipes.length - 2);
+                loadRecipes();
+            } catch(e) { alert("오류: " + e.message); }
+        }
+		window.renderRecipe = function(idx) {
+            if(recipes.length===0) { renderEmpty(); return; }
+            if(idx < 0) idx = 0; if(idx >= recipes.length) idx = recipes.length - 1;
+            currentRecipeIdx = idx;
+
             const r = recipes[idx];
             const memories = window.getMemories(r.title);
             const container = document.getElementById('recipe-container');
@@ -172,15 +204,19 @@
 
             container.innerHTML = `
                 <div class="fade-in">
-                    <div class="relative w-full h-64 bg-gray-200"><img src="${r.image}" class="w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6 text-white"><h2 class="text-3xl font-serif font-bold">${r.title}</h2></div></div>
+                    <div class="relative w-full h-64 bg-gray-200">
+                        <img src="${r.image}" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6 text-white"><h2 class="text-3xl font-serif font-bold drop-shadow-md">${r.title}</h2></div>
+                        <button onclick="window.deleteRecipe('${r.id}')" class="absolute top-4 right-4 bg-black/40 hover:bg-red-500 text-white w-10 h-10 rounded-full backdrop-blur-sm transition flex items-center justify-center shadow-lg"><i class="fa-solid fa-trash"></i></button>
+                    </div>
                     <div class="p-6">
-                        <div class="flex justify-between text-center mb-8 bg-white p-4 rounded-xl border"><div><p class="text-xs text-gray-400">시간</p><p class="font-bold">${r.time||'-'}</p></div><div><p class="text-xs text-gray-400">인분</p><p class="font-bold">${r.servings||'-'}</p></div></div>
+                        <div class="flex justify-between text-center mb-8 bg-white p-4 rounded-xl border"><div><p class="text-xs text-gray-400">시간</p><p class="font-bold">${r.time||'-'}</p></div><div class="w-px bg-gray-100"></div><div><p class="text-xs text-gray-400">인분</p><p class="font-bold">${r.servings||'-'}</p></div><div class="w-px bg-gray-100"></div><div><p class="text-xs text-gray-400">순서</p><p class="font-bold">${idx + 1}/${recipes.length}</p></div></div>
                         <h3 class="font-bold mb-4">준비 재료</h3><div class="mb-8">${ingHtml}</div>
                         <h3 class="font-bold mb-4">조리 순서</h3><div class="mb-8">${stepHtml}</div>
                         <h3 class="font-bold mb-4 flex justify-between">추억 앨범 <button onclick="window.triggerFile()" class="text-xs bg-amber-100 px-2 py-1 rounded text-amber-700">+ 사진 추가</button></h3>
                         <div class="space-y-4">${memHtml || '<p class="text-center text-xs text-gray-400 py-4 border border-dashed rounded">추억을 남겨보세요</p>'}</div>
                         <div class="h-10"></div>
-                        <p class="text-center text-xs text-gray-400 pb-4">↔ 좌우로 밀어서 이동</p>
+                        ${recipes.length > 1 ? '<p class="text-center text-xs text-gray-400 pb-4">↔ 좌우로 밀어서 이동</p>' : ''}
                     </div>
                 </div>`;
         }
@@ -203,7 +239,7 @@
         window.closeAddRecipeModal = () => document.getElementById('add-recipe-modal').classList.add('hidden');
         window.addIngredientRow = () => { const d=document.createElement('div'); d.className="flex gap-2 mb-2"; d.innerHTML=`<input class="ing-name border rounded px-2 py-1 w-full text-sm" placeholder="재료"><input class="ing-amount border rounded px-2 py-1 w-20 text-sm" placeholder="양"><button onclick="this.parentElement.remove()" class="text-red-400">X</button>`; document.getElementById('ingredient-input-list').appendChild(d); };
         
-        // 타이머
+        // 타이머 & 오디오
         let tt=0, ti;
         window.toggleTimerModal = () => document.getElementById('timer-modal').classList.toggle('hidden');
         window.setTimer = (s) => { tt=s; window.updateT(); document.getElementById('timer-modal').classList.remove('hidden'); };
@@ -211,8 +247,6 @@
         window.addTime = s => { tt+=s; window.updateT(); };
         window.resetTimer = () => { clearInterval(ti); tt=0; window.updateT(); };
         window.toggleTimer = () => { if(ti){clearInterval(ti);ti=null;} else { ti=setInterval(()=>{if(tt>0){tt--;window.updateT();}else{clearInterval(ti);ti=null;alert('끝!');}},1000); } };
-
-        // 오디오
         const audio = document.getElementById('audio-player');
         let play = false;
         window.togglePlay = () => { play=!play; play?audio.play():audio.pause(); document.getElementById('play-icon').className = play ? 'fa-solid fa-pause' : 'fa-solid fa-play'; };
@@ -220,9 +254,8 @@
         window.prevSong = window.nextSong;
 
         // 시작
-        window.nextSong(); // 첫 곡 로드
+        window.nextSong(); 
         loadRecipes();
     </script>
 </body>
 </html>
-
